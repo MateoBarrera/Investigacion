@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 from .viability import Hydro
-
+import time
 
 class PrimaryResource:
   """Definition for primary resource class
@@ -133,7 +133,6 @@ class ResourceViability:
     #self.graph_viability(resource=resource)
 
   def read_type_resource(self, resource):
-    print(resource.type_resource)
     if resource.type_resource == 'hydro':
       self.__viability = Hydro(resource.data)
     elif resource.type_resource == 'pv':
@@ -146,6 +145,10 @@ class ResourceViability:
   def graph_resource(self):
     self.__viability.viability_graph
     self.__viability.variability_graph
+    print(":: Variability Resource: {:.2f}% ::".format(self.__viability.variability))
+    print("Average monthly variation coefficient")
+    print(":: Autonomy Resource: {:.2f}% ::".format(self.__viability.autonomy*100))
+    print("Months higher than the ecological flow.")
     plt.show()
 
 class Potential:

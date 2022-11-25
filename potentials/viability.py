@@ -3,17 +3,28 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
+plt.style.use('seaborn-paper')
+plt.style.use('ggplot')
+
+font = {'family': 'serif',
+        'color':  'black',
+        'weight': 'bold',
+        'size': 10,
+        }
+
 class Hydro:
   __is_viability: bool = False
   __viability_graph: object = None
   __variability: float = None
   __variability_graph: object = None
   __autonomy: float = None
+  
   def __init__(self, data) -> None:
     self.data = data
     self.q_data = pd.DataFrame(data)['Valor'].to_list()
     self.flow_permanece_curve()
-    self.calculate_variability()
+    self.graph_variability()
+    self.calculate_autonomy()
     
   def flow_permanece_curve(self):
     """Evaluate the resource with the flow duration curve graph for the given data.
@@ -37,9 +48,9 @@ class Hydro:
                label="Qmean= {:.2f}".format(q_mean))
     ax1.hlines(y=q_sr, xmin=self.data['Fecha'].min(), xmax=self.data['Fecha'].max(), colors='red', linestyles='--',
                 label="Qsr = {:.2f}".format(q_sr))
-    ax1.set_title('Average monthly flow')
-    ax1.set_xlabel('months')
-    ax1.set_ylabel('flow [m^3/s]')
+    ax1.set_title('Average monthly flow', fontdict=font)
+    ax1.set_xlabel('Year', fontdict=font)
+    ax1.set_ylabel('Q [m^3/s]', fontdict=font)
     ax1.legend(loc='upper left')
 
     #Flow permanence curve
@@ -49,15 +60,16 @@ class Hydro:
     ax2.fill_between(q_frequency[q_sr_index:],q_data_sort[q_sr_index:], q_sr, alpha=0.2, color='r')
     ax2.hlines(y=q_sr, xmin=q_frequency[0], xmax=q_frequency[-1], colors='red', linestyles='--',
                label="Qsr = {:.2f}".format(q_sr))
-    ax2.set_xlabel("Percentage of occurrence [%]")
-    ax2.set_ylabel("Flow rate [m^3/s]")
-    ax2.set_title('Flow permanence curve')
+    ax2.set_xlabel("Percentage of occurrence [%]", fontdict=font)
+    ax2.set_ylabel("Flow rate [m^3/s]", fontdict=font)
+    ax2.set_title('Flow permanence curve', fontdict=font)
     ax2.legend(loc='upper right')
-    #result = self.calculate_potential(q_sr, q_mean)
-
+    #result = self.graph_potential(q_sr, q_mean)
+    self.q_sr = q_sr
+    plt.subplots_adjust(hspace=0.3, bottom=0.1)
     self.__viability_graph = fig
 
-  def calculate_variability(self):
+  def graph_variability(self):
     #Prepare data
     data_month = self.data.set_index('Fecha')
     data_month = data_month.asfreq('M', method='ffill')
@@ -73,8 +85,9 @@ class Hydro:
     data_month_piv.sort_index()
     #data_month_piv.sort_values('month')
     data_month_piv.plot(kind='line', ax=ax1, alpha=0.4)
-    
 
+    cv = lambda x: np.std(x, ddof=1) / np.mean(x) * 100 
+    self.__variability = data_month_piv.apply(cv).mean()
     #Mean chart
     data_month_piv['mean'] = data_month_piv.mean(axis=1)
     data_month_piv['std'] = data_month_piv.std(axis=1)
@@ -82,12 +95,30 @@ class Hydro:
                         style='--k')
     ax1.fill_between(data_month_piv.index, data_month_piv['mean'] - data_month_piv['std'], data_month_piv['mean'] + data_month_piv['std'],
                      alpha=.15)
+    ax1.hlines(y=self.q_sr, xmin=data_month_piv.index.min(), xmax=data_month_piv.index.max(), colors='red', linestyles='--',
+               label="Qsr = {:.2f}".format(self.q_sr))
+    ax1.set_title('River regime', fontdict=font)
+    ax1.set_xlabel('Year', fontdict=font)
+    ax1.set_ylabel('Q [m^3/s]', fontdict=font)
 
     data_month['Mes'] = pd.to_datetime(
         data_month.index.month, format="%m").month_name()
     #Boxplot chart
     sns.boxplot(data=data_month, x='Mes', y='Valor', ax=ax2)
+    ax2.set_title('Average monthly flow', fontdict=font)
+    ax2.set_xlabel('Year', fontdict=font)
+    ax2.set_ylabel('Q [m^3/s]', fontdict=font)
+
+    plt.subplots_adjust(hspace=0.5, bottom=0.1)
+    self.q_month_mean = data_month_piv['mean'].to_list()
     self.__variability_graph = fig
+
+  def calculate_autonomy(self):
+    autonomy = 0
+    for q_month_item in self.q_month_mean:
+      if q_month_item > self.q_sr:
+        autonomy += 1
+    self.__autonomy = autonomy/12
 
   @property
   def viability_graph(self):
@@ -104,3 +135,7 @@ class Hydro:
   @property
   def variability_graph(self):
     return self.__variability_graph
+
+  @property 
+  def autonomy(self):
+    return self.__autonomy
