@@ -53,6 +53,7 @@ class Hydro:
     ax2.set_ylabel("Flow rate [m^3/s]")
     ax2.set_title('Flow permanence curve')
     ax2.legend(loc='upper right')
+    #result = self.calculate_potential(q_sr, q_mean)
 
     self.__viability_graph = fig
 

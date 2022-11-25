@@ -10,7 +10,7 @@ print(test_obj.data_info)
 
 viability_obj = ResourceViability()
 viability_obj.evaluate_resource(test_obj)
-""" 
+
 #### POTRERITO - Hydro ####
 test_obj = PrimaryResource(name='Caudal medio mensual',
                            type_resource='hydro', source='Ideam', station=26057030)
@@ -20,5 +20,5 @@ print("Station 26057030-POTRERITO")
 print(test_obj.data_info)
 
 viability_obj = ResourceViability()
-viability_obj.evaluate_resource(test_obj) """
+viability_obj.evaluate_resource(test_obj)
 viability_obj.graph_resource()
