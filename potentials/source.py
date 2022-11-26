@@ -143,12 +143,13 @@ class ResourceViability:
       self.y_hline = self.__min_biomass
 
   def graph_resource(self):
-    self.__viability.viability_graph
-    self.__viability.variability_graph
     print(":: Variability Resource: {:.2f}% ::".format(self.__viability.variability))
     print("Average monthly variation coefficient")
     print(":: Autonomy Resource: {:.2f}% ::".format(self.__viability.autonomy*100))
     print("Months higher than the ecological flow.")
+    #fig = self.__viability.viability_graph
+    #fig2 = self.__viability.variability_graph
+    self.__viability.all_graph
     plt.show()
 
 class Potential:

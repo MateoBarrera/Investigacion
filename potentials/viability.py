@@ -4,7 +4,7 @@ import numpy as np
 import seaborn as sns
 
 plt.style.use('seaborn-paper')
-plt.style.use('ggplot')
+#plt.style.use('ggplot')
 
 font = {'family': 'serif',
         'color':  'black',
@@ -13,18 +13,19 @@ font = {'family': 'serif',
         }
 
 class Hydro:
+  """Analysis of the water resource through the flow permanence curve, resource variability and calculation of autonomy from historical monthly average flow data.
+
+  Returns:
+      Object: Hydro object
+  """  
   __is_viability: bool = False
-  __viability_graph: object = None
   __variability: float = None
-  __variability_graph: object = None
   __autonomy: float = None
   
   def __init__(self, data) -> None:
     self.data = data
     self.q_data = pd.DataFrame(data)['Valor'].to_list()
-    self.flow_permanece_curve()
-    self.graph_variability()
-    self.calculate_autonomy()
+    self.calculate_autonomy()    
     
   def flow_permanece_curve(self):
     """Evaluate the resource with the flow duration curve graph for the given data.
@@ -32,22 +33,16 @@ class Hydro:
     q_data_sort = np.sort(self.q_data)[::-1]
     q_frequency = (np.arange(1.,len(q_data_sort)+1) / len(q_data_sort))*100
 
-    #Q parameters calculation
-    q_sr_index = int(len(q_data_sort)*0.7)
-    q_sr = q_data_sort[q_sr_index]
-    q_max =q_data_sort[int(len(q_data_sort)*0.024)]
-    q_mean = q_data_sort[int(len(q_data_sort)*0.5)]
-
     #Plot figure
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6))
     
     #Plot raw data
     self.data.plot(kind='line', x='Fecha', y='Valor', ax=ax1, label="Q")
-
-    ax1.hlines(y=q_mean, xmin=self.data['Fecha'].min(), xmax=self.data['Fecha'].max(), colors='gray', linestyles='--',
-               label="Qmean= {:.2f}".format(q_mean))
-    ax1.hlines(y=q_sr, xmin=self.data['Fecha'].min(), xmax=self.data['Fecha'].max(), colors='red', linestyles='--',
-                label="Qsr = {:.2f}".format(q_sr))
+    ax1.hlines(y=self.q_mean, xmin=self.data['Fecha'].min(), xmax=self.data['Fecha'].max(), colors='gray', linestyles='--',
+               label="Qmean= {:.2f}".format(self.q_mean))
+    ax1.hlines(y=self.q_sr, xmin=self.data['Fecha'].min(), xmax=self.data['Fecha'].max(), colors='red', linestyles='--',
+                label="Qsr = {:.2f}".format(self.q_sr))
+    
     ax1.set_title('Average monthly flow', fontdict=font)
     ax1.set_xlabel('Year', fontdict=font)
     ax1.set_ylabel('Q [m^3/s]', fontdict=font)
@@ -56,18 +51,17 @@ class Hydro:
     #Flow permanence curve
     ax2.plot(q_frequency, q_data_sort)
 
-    ax2.fill_between(q_frequency[0:q_sr_index], q_data_sort[0:q_sr_index], q_sr, alpha=0.2, color='b')
-    ax2.fill_between(q_frequency[q_sr_index:],q_data_sort[q_sr_index:], q_sr, alpha=0.2, color='r')
-    ax2.hlines(y=q_sr, xmin=q_frequency[0], xmax=q_frequency[-1], colors='red', linestyles='--',
-               label="Qsr = {:.2f}".format(q_sr))
+    ax2.fill_between(q_frequency[0:self.q_sr_index], q_data_sort[0:self.q_sr_index], self.q_sr, alpha=0.2, color='b')
+    ax2.fill_between(q_frequency[self.q_sr_index:],q_data_sort[self.q_sr_index:], self.q_sr, alpha=0.2, color='r')
+    ax2.hlines(y=self.q_sr, xmin=q_frequency[0], xmax=q_frequency[-1], colors='red', linestyles='--',
+               label="Qsr = {:.2f}".format(self.q_sr))
     ax2.set_xlabel("Percentage of occurrence [%]", fontdict=font)
     ax2.set_ylabel("Flow rate [m^3/s]", fontdict=font)
     ax2.set_title('Flow permanence curve', fontdict=font)
     ax2.legend(loc='upper right')
-    #result = self.graph_potential(q_sr, q_mean)
-    self.q_sr = q_sr
     plt.subplots_adjust(hspace=0.3, bottom=0.1)
-    self.__viability_graph = fig
+    
+    return fig
 
   def graph_variability(self):
     #Prepare data
@@ -77,17 +71,16 @@ class Hydro:
     data_month['Mes'] = pd.to_datetime(
         data_month.index.month, format="%m")
 
-    #Plot figure
-    fig, (ax1, ax2) = plt.subplots(2, 1,  figsize=(10, 6))
     #Grouped year charts
     data_month_piv = pd.pivot_table(data_month, index=['Mes'], columns=[
                                     'Año'], values=['Valor'])
     data_month_piv.sort_index()
     #data_month_piv.sort_values('month')
+
+    #Plot figure
+    fig, (ax1, ax2) = plt.subplots(2, 1,  figsize=(10, 6))
     data_month_piv.plot(kind='line', ax=ax1, alpha=0.4)
 
-    cv = lambda x: np.std(x, ddof=1) / np.mean(x) * 100 
-    self.__variability = data_month_piv.apply(cv).mean()
     #Mean chart
     data_month_piv['mean'] = data_month_piv.mean(axis=1)
     data_month_piv['std'] = data_month_piv.std(axis=1)
@@ -103,6 +96,7 @@ class Hydro:
 
     data_month['Mes'] = pd.to_datetime(
         data_month.index.month, format="%m").month_name()
+    
     #Boxplot chart
     sns.boxplot(data=data_month, x='Mes', y='Valor', ax=ax2)
     ax2.set_title('Average monthly flow', fontdict=font)
@@ -110,19 +104,41 @@ class Hydro:
     ax2.set_ylabel('Q [m^3/s]', fontdict=font)
 
     plt.subplots_adjust(hspace=0.5, bottom=0.1)
-    self.q_month_mean = data_month_piv['mean'].to_list()
-    self.__variability_graph = fig
+    return fig
 
   def calculate_autonomy(self):
+    #Q parameters calculation
+    q_data_sort = np.sort(self.q_data)[::-1]
+    self.q_sr_index = int(len(q_data_sort)*0.7)
+    self.q_sr = q_data_sort[self.q_sr_index]
+    #q_max = q_data_sort[int(len(q_data_sort)*0.024)]
+    self.q_mean = q_data_sort[int(len(q_data_sort)*0.5)]
+    
     autonomy = 0
-    for q_month_item in self.q_month_mean:
+
+    #Prepare data
+    data_month = self.data.set_index('Fecha')
+    data_month = data_month.asfreq('M', method='ffill')
+    data_month['Año'] = data_month.index.year
+    data_month['Mes'] = pd.to_datetime(
+        data_month.index.month, format="%m")
+
+    data_month_piv = pd.pivot_table(data_month, index=['Mes'], columns=[
+                                    'Año'], values=['Valor'])
+    data_month_piv['mean'] = data_month_piv.mean(axis=1)
+    data_month_piv.sort_index()
+    cv = lambda x: np.std(x, ddof=1) / np.mean(x) * 100 
+    self.__variability = data_month_piv.apply(cv).mean()
+    q_month_mean = data_month_piv['mean'].to_list()
+
+    for q_month_item in q_month_mean:
       if q_month_item > self.q_sr:
         autonomy += 1
     self.__autonomy = autonomy/12
 
   @property
   def viability_graph(self):
-    return self.__viability_graph
+    return self.flow_permanece_curve()
 
   @property
   def is_viability(self):
@@ -134,8 +150,14 @@ class Hydro:
 
   @property
   def variability_graph(self):
-    return self.__variability_graph
+    return self.graph_variability()
 
   @property 
   def autonomy(self):
     return self.__autonomy
+  
+  @property
+  def all_graph(self):
+    self.flow_permanece_curve()
+    self.graph_variability()
+    return 
