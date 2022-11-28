@@ -7,6 +7,7 @@ test_obj = PrimaryResource(name='Caudal medio mensual',
 test_obj.from_csv('./recursos/hydro/caudal_medio_mensual/Jamundi.csv.csv')
 print("Station 26057040-TIMBA")
 print(test_obj.data_info)
+print(test_obj)
 
 viability_obj = ResourceViability()
 viability_obj.evaluate_resource(test_obj)
