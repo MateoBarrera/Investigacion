@@ -1,20 +1,3 @@
--BEGIN HEADER-
-NASA/POWER CERES/MERRA2 Native Resolution Daily Data 
-Dates (month/day/year): 12/31/2010 through 03/31/2021 
-Location: Latitude  3.2284   Longitude -76.5652 
-Elevation from MERRA-2: Average for 0.5 x 0.625 degree lat/lon region = 1163.41 meters
-The value for missing source data that cannot be computed or is outside of the sources availability range: -999 
-Parameter(s): 
-ALLSKY_SFC_SW_DWN       CERES SYN1deg All Sky Surface Shortwave Downward Irradiance (kW-hr/m^2/day) 
-CLRSKY_SFC_SW_DWN       CERES SYN1deg Clear Sky Surface Shortwave Downward Irradiance (kW-hr/m^2/day) 
-ALLSKY_KT               CERES SYN1deg All Sky Insolation Clearness Index (dimensionless) 
-ALLSKY_SFC_LW_DWN       CERES SYN1deg All Sky Surface Longwave Downward Irradiance (W/m^2) 
-ALLSKY_SFC_PAR_TOT      CERES SYN1deg All Sky Surface PAR Total (W/m^2) 
-CLRSKY_SFC_PAR_TOT      CERES SYN1deg Clear Sky Surface PAR Total (W/m^2) 
-ALLSKY_SFC_UVA          CERES SYN1deg All Sky Surface UVA Irradiance (W/m^2) 
-ALLSKY_SFC_UVB          CERES SYN1deg All Sky Surface UVB Irradiance (W/m^2) 
-ALLSKY_SFC_UV_INDEX     CERES SYN1deg All Sky Surface UV Index (dimensionless) 
--END HEADER-
 YEAR,MO,DY,ALLSKY_SFC_SW_DWN,CLRSKY_SFC_SW_DWN,ALLSKY_KT,ALLSKY_SFC_LW_DWN,ALLSKY_SFC_PAR_TOT,CLRSKY_SFC_PAR_TOT,ALLSKY_SFC_UVA,ALLSKY_SFC_UVB,ALLSKY_SFC_UV_INDEX
 2010,12,31,4.39,6.59,0.46,386.7,86.6,127.13,11.88,0.36,1.88
 2011,1,1,4.57,6.88,0.48,375.34,88.98,130.88,12.39,0.38,1.92

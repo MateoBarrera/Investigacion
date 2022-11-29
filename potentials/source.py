@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from .viability import Hydro
-from .extract.load import read_ideam_data
+from .viability import Hydro, Pv
+from .extract.load import read_ideam_data, read_pw_nasa_data
 
 
 class PrimaryResource:
@@ -72,6 +72,11 @@ class PrimaryResource:
           print("New function...")
           __file_obj = read_ideam_data(path=path, station=self.station)
 
+        if self.source.lower() == 'pw_nasa':
+          print("New function... 2")
+          __file_obj = read_pw_nasa_data(path=path)
+
+
         self.__date_start = __file_obj['info']['date_start']
         self.__date_end = __file_obj['info']['date_end']
         self.__frequency = __file_obj['info']['frequency']
@@ -104,7 +109,7 @@ class ResourceViability:
     __viability: object = None
     y_hline: str = None
 
-    def __init__(self, min_hydro=20, min_pv=20, min_wind=3, min_biomass=20) -> None:
+    def __init__(self, min_hydro=20, min_pv=3.0, min_wind=3, min_biomass=20) -> None:
         self.__min_hydro = min_hydro
         self.__min_pv = min_pv
         self.__min_wind = min_wind
@@ -120,6 +125,7 @@ class ResourceViability:
             self.__viability = Hydro(resource.data)
         elif resource.type_resource == 'pv':
             self.y_hline = self.__min_pv
+            self.__viability = Pv(resource.data, self.__min_pv)
         elif resource.type_resource == 'wind':
             self.y_hline = self.__min_wind
         else:
