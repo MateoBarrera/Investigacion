@@ -3,6 +3,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
+import cairosvg
+from PIL import Image
+from io import BytesIO
+
+
 plt.style.use('seaborn-paper')
 # plt.style.use('ggplot')
 
@@ -43,6 +48,43 @@ def calculate_variability(df):
     return df.apply(cv).mean()
 
 
+def merge_2axes(fig1, fig2, file_name1="f1.png", file_name2="f2.png"):
+    fig1.savefig(file_name1)
+    fig2.savefig(file_name2)
+
+    fig, (ax1, ax2) = plt.subplots(2, figsize=(30, 30))
+    if file_name1[-3:] == "svg":
+        img_png = cairosvg.svg2png(url=file_name1)
+        img = Image.open(BytesIO(img_png))
+        ax1.imshow(img)
+    else:
+        ax1.imshow(plt.imread(file_name1))
+    if file_name2[-3:] == "svg":
+        img_png = cairosvg.svg2png(url=file_name2)
+        img = Image.open(BytesIO(img_png))
+        ax2.imshow(img)
+    else:
+        ax2.imshow(plt.imread(file_name2))
+
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['left'].set_visible(False)
+    ax1.spines['bottom'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['left'].set_visible(False)
+    ax2.spines['bottom'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+
+    ax1.tick_params(left=False, right=False, labelleft=False,
+                    labelbottom=False, bottom=False)
+
+    ax2.tick_params(left=False, right=False, labelleft=False,
+                    labelbottom=False, bottom=False)
+
+    return fig
+
+
 class Hydro:
     """Analysis of the water resource through the flow permanence curve, resource variability and calculation of autonomy from historical monthly average flow data.
 
@@ -70,6 +112,13 @@ class Hydro:
         self.data_month, self.data_month_piv = get_data_month(self.data)
         self.__variability = calculate_variability(self.data_month_piv)
         self.__autonomy = calculate_autonomy(self.data_month_piv, self.q_sr)
+
+    def potential(self):
+        t = 2
+        e = 0.9 #Turbine efficiency
+        n = 0.85 #Accessories efficiency
+        def cv(x): return 9.81*x*T*e*n
+        return df.apply(cv).mean()
 
     def flow_permanece_curve(self):
         """Evaluate the resource with the flow duration curve graph for the given data.
@@ -154,7 +203,7 @@ class Hydro:
 
     @property
     def variability(self):
-        return self.__variability
+        return ":: Variability Resource: {:.2f}% ::".format(self.__variability)
 
     @property
     def variability_graph(self):
@@ -162,7 +211,9 @@ class Hydro:
 
     @property
     def autonomy(self):
-        return self.__autonomy
+        print("Months higher than the ecological flow.")
+        return ":: Autonomy Resource: {:.2f}% ::".format(
+            self.__autonomy*100)
 
     @property
     def all_graph(self):
@@ -175,7 +226,7 @@ class Pv:
     """Analysis of the solar resource through the Peak Sun Hours, resource variability and calculation of autonomy from historical monthly average flow data.
 
     Returns:
-        Object: PV object
+        Object: Pv object
     """
     __is_viability: bool = False
     __variability: float = None
@@ -187,9 +238,10 @@ class Pv:
         self.calculate_autonomy()
 
     def calculate_autonomy(self):
+        # Prepare data
         self.irr_mean_month = self.data.groupby(
             pd.PeriodIndex(self.data['Fecha'], freq="M"))['Valor'].mean()
-        # Prepare data
+        self.irr_mean_month.sort_index()
         self.data_month, self.data_month_piv = get_data_month(self.data)
         self.__variability = calculate_variability(self.data_month_piv)
         self.__autonomy = calculate_autonomy(
@@ -266,15 +318,20 @@ class Pv:
 
     @property
     def variability(self):
-        return self.__variability
+        return ":: Variability Resource: {:.2f}% ::".format(self.__variability)
 
     @property
     def autonomy(self):
-        return self.__autonomy
+        return ":: Autonomy Resource: {:.2f}% ::".format(
+            self.__autonomy*100)
 
     @property
     def viability_graph(self):
         return self.psh_graph()
+
+    @property
+    def variability_graph(self):
+        return self.graph_variability()
 
     @property
     def all_graph(self):
@@ -287,16 +344,91 @@ class Wind:
     """Analysis of the wind resource through the Peak Sun Hours, resource variability and calculation of autonomy from historical monthly average flow data.
 
     Returns:
-        Object: PV object
+        Object: Wind object
     """
     __is_viability: bool = False
     __variability: float = None
     __autonomy: float = None
 
-    def __init__(self, data) -> None:
+    def __init__(self, data, min_ws_wind) -> None:
         self.data = data
-        self.q_data = pd.DataFrame(data)['Valor'].to_list()
+        self.min_ws_wind = min_ws_wind
         self.calculate_autonomy()
+
+    def calculate_autonomy(self):
+        # Prepare data
+        self.wind_mean_month = self.data.groupby(
+            pd.PeriodIndex(self.data['Fecha'], freq="M"))['Valor'].mean()
+        self.wind_mean_month.sort_index()
+        self.data_month, self.data_month_piv = get_data_month(self.data)
+        self.__variability = calculate_variability(self.data_month_piv)
+        self.__autonomy = calculate_autonomy(
+            self.data_month_piv, self.min_ws_wind)
+
+    def wind_speed_graph(self):
+        # Plot figure
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6))
+
+        # Plot raw data
+        self.data.plot(kind='line', x='Fecha', y='Valor',
+                       ax=ax1, label="wind speed")
+
+        self.wind_mean = self.data['Valor'].mean()
+        ax1.hlines(y=self.wind_mean, xmin=self.data['Fecha'].min(), xmax=self.data['Fecha'].max(), colors='gray', linestyles='--',
+                   label="Average ws= {:.2f}".format(self.wind_mean))
+        ax1.set_title(
+            'Monthly average wind speed', fontdict=font)
+        ax1.set_xlabel('Year', fontdict=font)
+        ax1.set_ylabel('Wind speed [m/s]', fontdict=font)
+        ax1.legend(loc='upper left')
+
+        # Plot month data
+        self.wind_mean_month.plot(
+            kind='line', x='Fecha', y='Valor', ax=ax2, label="PHS")
+
+        self.wind_mean = self.data['Valor'].mean()
+        ax2.hlines(y=self.wind_mean, xmin=self.data['Fecha'].min(), xmax=self.data['Fecha'].max(), colors='gray', linestyles='--',
+                   label="Average ws= {:.2f}".format(self.wind_mean))
+        ax2.set_title('Monthly average wind speed', fontdict=font)
+        ax2.set_xlabel('Year', fontdict=font)
+        ax2.set_ylabel('Wind speed [m/s]', fontdict=font)
+        ax2.legend(loc='upper left')
+
+        return fig
+
+    def graph_variability(self):
+        # Prepare data
+        data_month = self.data_month
+        data_month_piv = self.data_month_piv
+
+        # Plot figure
+        fig, (ax1, ax2) = plt.subplots(2, 1,  figsize=(10, 6))
+        data_month_piv.plot(kind='line', ax=ax1, alpha=0.4)
+
+        # Mean chart
+        data_month_piv['mean'] = data_month_piv.mean(axis=1)
+        data_month_piv['std'] = data_month_piv.std(axis=1)
+        data_month_piv.plot(kind='line', y='mean', ax=ax1,
+                            style='--k')
+        ax1.fill_between(data_month_piv.index, data_month_piv['mean'] - data_month_piv['std'], data_month_piv['mean'] + data_month_piv['std'],
+                         alpha=.15)
+        ax1.hlines(y=self.min_ws_wind, xmin=data_month_piv.index.min(), xmax=data_month_piv.index.max(), colors='red', linestyles='--',
+                   label="Min wind speed = {:.2f}".format(self.min_ws_wind))
+        ax1.set_title('Monthly average wind speed', fontdict=font)
+        ax1.set_xlabel('Year', fontdict=font)
+        ax1.set_ylabel('Wind speed [m/s]', fontdict=font)
+
+        data_month['Mes'] = pd.to_datetime(
+            data_month.index.month, format="%m").month_name()
+
+        # Boxplot chart
+        sns.boxplot(data=data_month, x='Mes', y='Valor', ax=ax2)
+        ax2.set_title('Monthly average wind speed', fontdict=font)
+        ax2.set_xlabel('Year', fontdict=font)
+        ax2.set_ylabel('Wind speed [m/s]', fontdict=font)
+
+        plt.subplots_adjust(hspace=0.5, bottom=0.1)
+        return fig
 
     @property
     def is_viability(self):
@@ -304,14 +436,26 @@ class Wind:
 
     @property
     def variability(self):
-        return self.__variability
+        return ":: Variability Resource: {:.2f}% ::".format(self.__variability)
 
     @property
     def autonomy(self):
-        return self.__autonomy
+        return ":: Autonomy Resource: {:.2f}% ::".format(
+            self.__autonomy*100)
 
-    def calculate_autonomy(self):
-        pass
+    @property
+    def viability_graph(self):
+        return self.wind_speed_graph()
+
+    @property
+    def variability_graph(self):
+        return self.graph_variability()
+
+    @property
+    def all_graph(self):
+        self.wind_speed_graph()
+        self.graph_variability()
+        return
 
 
 class Biomass:
@@ -335,11 +479,12 @@ class Biomass:
 
     @property
     def variability(self):
-        return self.__variability
+        return ":: Variability Resource: {:.2f}% ::".format(self.__variability)
 
     @property
     def autonomy(self):
-        return self.__autonomy
+        return ":: Autonomy Resource: {:.2f}% ::".format(
+            self.__autonomy*100)
 
     def calculate_autonomy(self):
         pass

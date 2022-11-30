@@ -7,7 +7,6 @@ test_obj = PrimaryResource(name='Caudal medio mensual',
 test_obj.from_csv('./recursos/hydro/caudal_medio_mensual/Jamundi.csv.csv')
 print("Station 26057040-TIMBA")
 print(test_obj.data_info)
-print(test_obj)
 
 viability_obj = ResourceViability()
 viability_obj.evaluate_resource(test_obj)
@@ -19,7 +18,21 @@ test_obj = PrimaryResource(name='Irradiance',
 test_obj.from_csv('./recursos/pv/PV-Jamundi-H.csv')
 print("Jamundi PV")
 print(test_obj.data_info)
-print(test_obj)
+
+viability_obj = ResourceViability()
+viability_obj.evaluate_resource(test_obj)
+viability_obj.graph_resource()
+
+#### Jamundi wind ####
+#test_obj = PrimaryResource(name='Wind speed',                    type_resource='wind', source='Ideam', station=26055110)
+#test_obj.from_csv('./recursos/wind/Wind-Jamundi-D.csv.csv')
+
+test_obj = PrimaryResource(name='Wind speed',
+                           type_resource='wind', source='pw_nasa')
+test_obj.from_csv('./recursos/wind/Wind-Jamundi-D-Nasa.csv')
+
+print("Jamundi Wind")
+print(test_obj.data_info)
 
 viability_obj = ResourceViability()
 viability_obj.evaluate_resource(test_obj)

@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from .viability import Hydro, Pv
+from .viability import Hydro, Pv, Wind
 from .extract.load import read_ideam_data, read_pw_nasa_data
 
 
@@ -23,12 +23,12 @@ class PrimaryResource:
         """Constructor for PrimaryResource
         Args:
             name (str, optional): Name resource. Defaults to None.
-            type_resource (str, optional): Type of resource (Solar, Hydro, Wind, Biomas, etc). Defaults to None.
+            type_resource (str, optional): Type of resource (pv, hydro, wind, biomass, etc). Defaults to None.
             source (str, optional): Information source. Defaults to None.
         """
         self.name = name
-        self.__type_resource = type_resource
-        self.source = source
+        self.__type_resource = type_resource.lower()
+        self.source = source.lower()
         self.station = station
 
     def __str__(self) -> str:
@@ -69,12 +69,12 @@ class PrimaryResource:
             return False
 
         if self.source.lower() == 'ideam':
-            print("New function...")
-            __file_obj = read_ideam_data(path=path, station=self.station)
+            __file_obj = read_ideam_data(
+                path=path, _type=self.__type_resource, station=self.station)
 
         if self.source.lower() == 'pw_nasa':
-            print("New function... 2")
-            __file_obj = read_pw_nasa_data(path=path)
+            __file_obj = read_pw_nasa_data(
+                path=path, _type=self.__type_resource)
 
         self.__date_start = __file_obj['info']['date_start']
         self.__date_end = __file_obj['info']['date_end']
@@ -108,15 +108,24 @@ class ResourceViability:
     __viability: object = None
     y_hline: str = None
 
-    def __init__(self, min_hydro=20, min_pv=3.0, min_wind=3, min_biomass=20) -> None:
+    def __init__(self, min_hydro=20, min_pv=3.8, min_wind=2.0, min_biomass=20) -> None:
         self.__min_hydro = min_hydro
         self.__min_pv = min_pv
         self.__min_wind = min_wind
         self.__min_biomass = min_biomass
 
     def evaluate_resource(self, resource):
+        """Mesure the viability and variability resource (pv, hydro, wind, biomass).
+
+        Args:
+            resource (PrimaryResource Object): Object with info and historical data.
+        """        
         self.__resource = resource
-        self.read_type_resource(resource)
+        status = self.read_type_resource(resource)
+        if status:
+            print(self.__viability.variability)
+            print(self.__viability.autonomy)
+            print(' ')
         # self.graph_viability(resource=resource)
 
     def read_type_resource(self, resource):
@@ -127,16 +136,13 @@ class ResourceViability:
             self.__viability = Pv(resource.data, self.__min_pv)
         elif resource.type_resource == 'wind':
             self.y_hline = self.__min_wind
+            self.__viability = Wind(resource.data, self.__min_wind)
         else:
             self.y_hline = self.__min_biomass
+            self.__viability = Pv(resource.data, self.__min_pv)
+        return True
 
-    def graph_resource(self):
-        print(":: Variability Resource: {:.2f}% ::".format(
-            self.__viability.variability))
-        print("Average monthly variation coefficient")
-        print(":: Autonomy Resource: {:.2f}% ::".format(
-            self.__viability.autonomy*100))
-        print("Months higher than the ecological flow.")
+    def graph_resource(self):        
         #fig = self.__viability.viability_graph
         #fig2 = self.__viability.variability_graph
         self.__viability.all_graph
