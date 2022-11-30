@@ -69,13 +69,12 @@ class PrimaryResource:
             return False
 
         if self.source.lower() == 'ideam':
-          print("New function...")
-          __file_obj = read_ideam_data(path=path, station=self.station)
+            print("New function...")
+            __file_obj = read_ideam_data(path=path, station=self.station)
 
         if self.source.lower() == 'pw_nasa':
-          print("New function... 2")
-          __file_obj = read_pw_nasa_data(path=path)
-
+            print("New function... 2")
+            __file_obj = read_pw_nasa_data(path=path)
 
         self.__date_start = __file_obj['info']['date_start']
         self.__date_end = __file_obj['info']['date_end']
