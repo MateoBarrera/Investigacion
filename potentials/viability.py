@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-import cairosvg
+#import cairosvg
 from PIL import Image
 from io import BytesIO
 
@@ -114,11 +114,14 @@ class Hydro:
         self.__autonomy = calculate_autonomy(self.data_month_piv, self.q_sr)
 
     def potential(self):
-        t = 2
+        t = 60 #Monthly operating time
         e = 0.9 #Turbine efficiency
         n = 0.85 #Accessories efficiency
-        def cv(x): return 9.81*x*T*e*n
-        return df.apply(cv).mean()
+        df = pd.DataFrame(index=self.data_month_piv.index)
+        df['mean'] = self.data_month_piv['mean']
+        def pt_wind(x): return 9.81*(x['mean']-self.q_sr)*t*e*n if (x['mean']-self.q_sr)>0 else 0
+        
+        return df.apply(pt_wind, axis=1)
 
     def flow_permanece_curve(self):
         """Evaluate the resource with the flow duration curve graph for the given data.
@@ -247,6 +250,16 @@ class Pv:
         self.__autonomy = calculate_autonomy(
             self.data_month_piv, self.min_irr_pv)
 
+    def potential(self):
+        pp = 200 #Peak power of the panel [W]
+        nt = 10 #Number of panels
+        n = 0.90 #Typical conditions
+        df = pd.DataFrame(index=self.data_month_piv.index)
+        df['mean'] = self.data_month_piv['mean']
+        def pt_pv(x): return x['mean']*pp*nt*n
+        print(df)
+        return df.apply(pt_pv, axis=1)
+
     def psh_graph(self):
         # Plot figure
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6))
@@ -364,6 +377,16 @@ class Wind:
         self.__variability = calculate_variability(self.data_month_piv)
         self.__autonomy = calculate_autonomy(
             self.data_month_piv, self.min_ws_wind)
+
+    def potential(self):
+        k = 0.8  # Performance factor
+        p = 1.29  # Air density
+        r = 15  # Sweep radius [m]
+        df = pd.DataFrame(index=self.data_month_piv.index)
+        df['mean'] = self.data_month_piv['mean']
+        def pt_pv(x): return (x['mean']**3)*k*p*(r**2)
+        print(df)
+        return df.apply(pt_pv, axis=1)
 
     def wind_speed_graph(self):
         # Plot figure

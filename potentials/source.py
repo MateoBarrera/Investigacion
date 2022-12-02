@@ -147,6 +147,12 @@ class ResourceViability:
         #fig2 = self.__viability.variability_graph
         self.__viability.all_graph
         plt.show()
+    
+    def potential(self):
+        result = self.__viability.potential()
+        print("Potential resource")
+        print(result)
+        return result
 
 
 class Potential:
