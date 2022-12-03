@@ -1,8 +1,15 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from .viability import Hydro, Pv, Wind
+from .viability import Hydro, Pv, Wind, get_data_month
 from .extract.load import read_ideam_data, read_pw_nasa_data
 
+import seaborn as sns
+
+font = {'family': 'serif',
+        'color':  'black',
+        'weight': 'bold',
+        'size': 10,
+        }
 
 class PrimaryResource:
     """Definition for primary resource class
@@ -153,6 +160,55 @@ class ResourceViability:
         print("Potential resource")
         print(result)
         return result
+    
+    def electrical_demand(self, percentage_value=0.3):
+        demand = pd.read_excel('./recursos/demand/Jamundi-XM-NR.xlsx', header=2)
+        demand = demand.filter(
+            items=['Fecha - Año', 'Fecha - Mes', 'Fecha - Día', 'Suma de Demanda Real'])
+        demand = demand.rename(
+            columns={'Fecha - Año': 'year', 'Fecha - Mes': 'month', 'Fecha - Día': 'day', 'Suma de Demanda Real': 'Valor'})
+
+        m = {'enero':1, 'febrero':2, 'marzo':3, 'abril':4, 'mayo':5, 'junio':6, 'julio':7, 'agosto':8, 'septiembre':9, 'octubre':10, 'noviembre':11, 'diciembre':12}
+
+        demand['month']= demand['month'].map(m)
+        demand['Fecha'] = pd.to_datetime(demand[['year', 'month', 'day']]) 
+        demand = demand.drop(['year', 'month', 'day'], axis=1)
+        #demand = demand.set_index('Fecha')
+
+        demand_month, demand_month_piv = get_data_month(demand)
+
+
+        # Plot figure
+        fig, (ax1, ax2) = plt.subplots(2, 1,  figsize=(10, 6))
+        demand_month_piv.plot(kind='line', ax=ax1, alpha=0.4)
+
+        # Mean chart
+        demand_month_piv['mean'] = demand_month_piv.mean(axis=1)
+        demand_month_piv['std'] = demand_month_piv.std(axis=1)
+        demand_month_piv.plot(kind='line', y='mean', ax=ax1,
+                            style='--k')
+        ax1.fill_between(demand_month_piv.index, demand_month_piv['mean'] - demand_month_piv['std'], demand_month_piv['mean'] + demand_month_piv['std'],
+                         alpha=.15)
+        ax1.set_title('Electricity demand', fontdict=font)
+        ax1.set_xlabel('Year', fontdict=font)
+        ax1.set_ylabel('[MWh]', fontdict=font)
+
+        demand_month['Mes'] = pd.to_datetime(
+            demand_month.index.month, format="%m").month_name()
+
+        # Boxplot chart
+        sns.boxplot(data=demand_month, x='Mes', y='Valor', ax=ax2)
+        ax2.set_title('Electricity demand', fontdict=font)
+        ax2.set_xlabel('Year', fontdict=font)
+        ax2.set_ylabel('[MWh]', fontdict=font)
+
+        plt.subplots_adjust(hspace=0.5, bottom=0.1)
+
+        demand_result = pd.DataFrame(index=demand_month_piv.index)
+        demand_result['Valor'] = demand_month_piv['mean']
+
+        def demand_percentage(x): return x*percentage_value
+        return demand_result.apply(demand_percentage)
 
 
 class Potential:

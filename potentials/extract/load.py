@@ -24,7 +24,7 @@ def __filter_csv_pw_nasa(file, _type=None):
     file = file.rename(
         columns={'YEAR': 'year', 'MO': 'month', 'DY': 'day', parameter: 'Valor'})
     file['Fecha'] = pd.to_datetime(file[['year', 'month', 'day']])
-    file['Frecuencia'] = 'Diario'
+    file['Frecuencia'] = 'Daily'
     file.drop(['year', 'month', 'day'], axis=1)
     return __split_date(file)
 
