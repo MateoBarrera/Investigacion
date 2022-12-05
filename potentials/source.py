@@ -161,6 +161,9 @@ class ResourceViability:
         print(result)
         return result
     
+    def extra(self):
+        self.__viability.graph_pdc()
+
     def electrical_demand(self, percentage_value=0.3):
         demand = pd.read_excel('./recursos/demand/Jamundi-XM-NR.xlsx', header=2)
         demand = demand.filter(

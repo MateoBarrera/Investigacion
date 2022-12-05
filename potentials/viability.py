@@ -113,14 +113,29 @@ class Hydro:
         self.__variability = calculate_variability(self.data_month_piv)
         self.__autonomy = calculate_autonomy(self.data_month_piv, self.q_sr)
 
-    def potential(self):
+    def potential(self, demand=100):
         t = 60 #Monthly operating time
         e = 0.9 #Turbine efficiency
         n = 0.85 #Accessories efficiency
+        H = 2 #Height 
+
         df = pd.DataFrame(index=self.data_month_piv.index)
+
         df['mean'] = self.data_month_piv['mean']
-        def pt_wind(x): return 9.81*(x['mean']-self.q_sr)*t*e*n if (x['mean']-self.q_sr)>0 else 0
+        def pt_wind(x): return 9.81*(x['mean']-self.q_sr)*t*e*n*H if (x['mean']-self.q_sr)>0 else 0
         
+        qd = self.q_mean-self.q_sr
+        def qd_calc(x): return qd if (
+            x['mean']-self.q_sr) > qd else x['mean']-self.q_sr
+        df['Qd'] = df.apply(qd_calc, axis=1)
+        df[df['Qd'] < 0] = 0
+        df.set_index = df.index.month
+        def time_operation(x): return demand/(9.81*(x['Qd'])*H*e*n)
+        df['time'] = df.apply(time_operation, axis=1)
+        print("Q sr: {}".format(self.q_sr))
+        print("Qd: {}".format(self.q_mean-self.q_sr))
+        print("\nTime operation")
+        print(df)
         return df.apply(pt_wind, axis=1)
 
     def flow_permanece_curve(self):
@@ -195,6 +210,62 @@ class Hydro:
 
         plt.subplots_adjust(hspace=0.5, bottom=0.1)
         return fig
+
+    def graph_pdc(self):
+        y = 1000 #
+        H = 2
+        n = 0.85
+        df = pd.DataFrame(index=self.data_month_piv.index)
+        df['q'] = self.data_month_piv['mean'] - self.q_sr
+        df[df < 0] = 0
+        df['potencial'] = y*df['q']*H*n/1000
+        
+
+        q_data_sort = np.sort(self.q_data)[::-1]
+        
+        q_frequency = (np.arange(1., len(q_data_sort)+1) /
+                       len(q_data_sort))*100
+        q_data_p = q_frequency*q_data_sort*y*H*n/1000
+        #print(q_data_p)
+        # Plot figure
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6))
+
+        # Plot raw data
+        ax1.plot(q_frequency, q_data_sort)
+
+        ax1.fill_between(q_frequency[0:self.q_sr_index],
+                         q_data_sort[0:self.q_sr_index], self.q_sr, alpha=0.2, color='b')
+        ax1.fill_between(q_frequency[self.q_sr_index:],
+                         q_data_sort[self.q_sr_index:], self.q_sr, alpha=0.2, color='r')
+        ax1.hlines(y=self.q_sr, xmin=q_frequency[0], xmax=q_frequency[-1], colors='red', linestyles='--',
+                   label="Qsr = {:.2f}".format(self.q_sr))
+        ax1.set_xlabel("Percentage of occurrence [%]", fontdict=font)
+        ax1.set_ylabel("Flow rate [m^3/s]", fontdict=font)
+        ax1.set_title('Flow permanence curve', fontdict=font)
+        ax1.legend(loc='upper right')
+        plt.subplots_adjust(hspace=0.3, bottom=0.1)
+
+        # Flow permanence curve
+        q_sort = np.sort(df['q'])[::-1]
+        q_power_sort = np.sort(df['potencial'])[::-1]
+        ax2.plot(q_data_sort, q_data_p)
+
+        """ ax2.fill_between(q_frequency[0:self.q_sr_index],
+                         q_data_sort[0:self.q_sr_index], self.q_sr, alpha=0.2, color='b')
+        ax2.fill_between(q_frequency[self.q_sr_index:],
+                         q_data_sort[self.q_sr_index:], self.q_sr, alpha=0.2, color='r') """
+        ax2.vlines(x=self.q_sr, ymin=0, ymax=max(q_data_p), colors='red', linestyles='--',
+                   label="Qsr = {:.2f}".format(self.q_sr))
+        ax2.vlines(x=self.q_mean, ymin=0, ymax=max(q_data_p), colors='grey', linestyles='--',
+                   label="Average Q = {:.2f}".format(self.q_mean))
+        ax2.set_xlabel("Flow rate [m^3/s]", fontdict=font)
+        ax2.set_ylabel("Power generation [Wh]", fontdict=font)
+        ax2.set_title("Power duration curve", fontdict=font)
+        ax2.legend(loc='upper right')
+        plt.subplots_adjust(hspace=0.3, bottom=0.1)
+        plt.show()
+        #return fig
+
 
     @property
     def viability_graph(self):
