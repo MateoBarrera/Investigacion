@@ -47,7 +47,7 @@ def __extract_info(file, _type):
     
     info['date_start'] = file['Fecha'].min()
     info['date_end'] = file['Fecha'].max()
-    info['frequency'] = file['Frecuencia'][0]
+    info['frequency'] = 'Monthly' if file['Frecuencia'][0] == 'Mensual' else file['Frecuencia'][0]
     
     return info
 
