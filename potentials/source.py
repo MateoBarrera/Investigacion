@@ -157,8 +157,6 @@ class ResourceViability:
     
     def potential(self):
         result = self.__viability.potential()
-        print("Potential resource")
-        print(result)
         return result
     
     def extra(self):

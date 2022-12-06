@@ -14,7 +14,7 @@ print("Jamundi Hydro - Station 26057040-TIMBA\n{}".format(test_obj.data_info))
 
 viability_obj = ResourceViability()
 viability_obj.evaluate_resource(test_obj)
-#viability_obj.graph_resource()
+viability_obj.graph_resource()
 
 viability_obj.extra()
 

@@ -2,11 +2,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-
+import math
 #import cairosvg
 from PIL import Image
 from io import BytesIO
-
 
 plt.style.use('seaborn-paper')
 # plt.style.use('ggplot')
@@ -132,8 +131,8 @@ class Hydro:
         df.set_index = df.index.month
         def time_operation(x): return demand/(9.81*(x['Qd'])*H*e*n)
         df['time'] = df.apply(time_operation, axis=1)
-        print("Q sr: {}".format(self.q_sr))
-        print("Qd: {}".format(self.q_mean-self.q_sr))
+        print("Qsr: {:.2f}".format(self.q_sr))
+        print("Qd: {:.2f}".format(self.q_mean-self.q_sr))
         print("\nTime operation")
         print(df)
         return df.apply(pt_wind, axis=1)
@@ -321,13 +320,17 @@ class Pv:
         self.__autonomy = calculate_autonomy(
             self.data_month_piv, self.min_irr_pv)
 
-    def potential(self):
-        pp = 200 #Peak power of the panel [W]
+    def potential(self, demand=100):
+        pp = 0.200 #Peak power of the panel [kW]
         nt = 10 #Number of panels
         n = 0.90 #Typical conditions
         df = pd.DataFrame(index=self.data_month_piv.index)
         df['mean'] = self.data_month_piv['mean']
         def pt_pv(x): return x['mean']*pp*nt*n
+        
+        def nt_calc(x): return math.ceil(demand/(x['mean']*pp*n))
+
+        df['Nt'] = df.apply(nt_calc, axis=1)
         print(df)
         return df.apply(pt_pv, axis=1)
 
@@ -449,13 +452,19 @@ class Wind:
         self.__autonomy = calculate_autonomy(
             self.data_month_piv, self.min_ws_wind)
 
-    def potential(self):
+    def potential(self, demand=100):
         k = 0.8  # Performance factor
         p = 1.29  # Air density
-        r = 15  # Sweep radius [m]
+        A = 876  # Area [m2]
+        Np = 3 # Number of blades
         df = pd.DataFrame(index=self.data_month_piv.index)
         df['mean'] = self.data_month_piv['mean']
-        def pt_pv(x): return (x['mean']**3)*k*p*(r**2)
+        def pt_pv(x): return 0.5*p*(x['mean']**3)*k*A*Np
+
+        def nt_gen(x): return math.ceil(
+            (demand*1000)/(0.5*p*(x['mean']**3)*k*A*Np))
+
+        df['Ngen'] = df.apply(nt_gen, axis=1)
         print(df)
         return df.apply(pt_pv, axis=1)
 
@@ -470,6 +479,8 @@ class Wind:
         self.wind_mean = self.data['Valor'].mean()
         ax1.hlines(y=self.wind_mean, xmin=self.data['Fecha'].min(), xmax=self.data['Fecha'].max(), colors='gray', linestyles='--',
                    label="Average ws= {:.2f}".format(self.wind_mean))
+        ax1.hlines(y=self.min_ws_wind, xmin=self.data['Fecha'].min(), xmax=self.data['Fecha'].max(), colors='red', linestyles='--',
+                   label="min ws= {:.2f}".format(self.min_ws_wind))
         ax1.set_title(
             'Monthly average wind speed', fontdict=font)
         ax1.set_xlabel('Year', fontdict=font)
@@ -478,7 +489,7 @@ class Wind:
 
         # Plot month data
         self.wind_mean_month.plot(
-            kind='line', x='Fecha', y='Valor', ax=ax2, label="PHS")
+            kind='line', x='Fecha', y='Valor', ax=ax2, label="ws")
 
         self.wind_mean = self.data['Valor'].mean()
         ax2.hlines(y=self.wind_mean, xmin=self.data['Fecha'].min(), xmax=self.data['Fecha'].max(), colors='gray', linestyles='--',
