@@ -156,8 +156,7 @@ class ResourceViability:
         plt.show()
     
     def potential(self):
-        result = self.__viability.potential()
-        return result
+        return self.__viability.potential()
     
     def extra(self):
         self.__viability.graph_pdc()

@@ -17,8 +17,6 @@ font = {'family': 'serif',
         }
 
 ###Local Method###
-
-
 def get_data_month(df):
     data_month = df.set_index('Fecha')
     data_month = data_month.asfreq('M', method='ffill')
@@ -113,15 +111,15 @@ class Hydro:
         self.__autonomy = calculate_autonomy(self.data_month_piv, self.q_sr)
 
     def potential(self, demand=100):
-        t = 60 #Monthly operating time
+        ### Parameters ###
         e = 0.9 #Turbine efficiency
         n = 0.85 #Accessories efficiency
         H = 2 #Height 
+        ### End Parameters ###
 
         df = pd.DataFrame(index=self.data_month_piv.index)
 
         df['mean'] = self.data_month_piv['mean']
-        def pt_wind(x): return 9.81*(x['mean']-self.q_sr)*t*e*n*H if (x['mean']-self.q_sr)>0 else 0
         
         qd = self.q_mean-self.q_sr
         def qd_calc(x): return qd if (
@@ -129,13 +127,13 @@ class Hydro:
         df['Qd'] = df.apply(qd_calc, axis=1)
         df[df['Qd'] < 0] = 0
         df.set_index = df.index.month
-        def time_operation(x): return demand/(9.81*(x['Qd'])*H*e*n)
+        def time_operation(x): return demand/(9.81*(x['Qd'])*H*e*n) if x["Qd"] > 0 else 0
         df['time'] = df.apply(time_operation, axis=1)
         print("Qsr: {:.2f}".format(self.q_sr))
         print("Qd: {:.2f}".format(self.q_mean-self.q_sr))
         print("\nTime operation")
-        print(df)
-        return df.apply(pt_wind, axis=1)
+        print(df.to_markdown(floatfmt=".4f"))
+        return df
 
     def flow_permanece_curve(self):
         """Evaluate the resource with the flow duration curve graph for the given data.
@@ -322,17 +320,15 @@ class Pv:
 
     def potential(self, demand=100):
         pp = 0.200 #Peak power of the panel [kW]
-        nt = 10 #Number of panels
         n = 0.90 #Typical conditions
         df = pd.DataFrame(index=self.data_month_piv.index)
         df['mean'] = self.data_month_piv['mean']
-        def pt_pv(x): return x['mean']*pp*nt*n
         
         def nt_calc(x): return math.ceil(demand/(x['mean']*pp*n))
 
         df['Nt'] = df.apply(nt_calc, axis=1)
-        print(df)
-        return df.apply(pt_pv, axis=1)
+        print(df.to_markdown())
+        return df
 
     def psh_graph(self):
         # Plot figure
@@ -459,14 +455,13 @@ class Wind:
         Np = 3 # Number of blades
         df = pd.DataFrame(index=self.data_month_piv.index)
         df['mean'] = self.data_month_piv['mean']
-        def pt_pv(x): return 0.5*p*(x['mean']**3)*k*A*Np
 
         def nt_gen(x): return math.ceil(
             (demand*1000)/(0.5*p*(x['mean']**3)*k*A*Np))
 
         df['Ngen'] = df.apply(nt_gen, axis=1)
-        print(df)
-        return df.apply(pt_pv, axis=1)
+        print(df.to_markdown())
+        return df
 
     def wind_speed_graph(self):
         # Plot figure

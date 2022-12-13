@@ -18,7 +18,6 @@ viability_obj.evaluate_resource(test_obj)
 #viability_obj.graph_resource()
 p_hydro = viability_obj.potential()
 
-
 #### Jamundi PV ####
 test_obj = PrimaryResource(name='Irradiance',
                            type_resource='pv', source='pw_nasa')
