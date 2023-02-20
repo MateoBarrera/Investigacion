@@ -1,0 +1,21 @@
+{
+	"subcriteria": {
+    "101":{
+      "id": "C1.1",
+      "name": "Reducción de emisiones de CO2",
+      "description": "Reducción en las emisiones CO2 para una capacidad determinada de generación mediante recursos limpios en comparación con el equivalente de generación con gas natural.",
+      "source": " ",
+      "data": {
+        "solar": "",
+        "wind": "",
+        "hydro": "",
+        "biomass": ""
+      },
+      "year": "",
+      "unit": "%",
+      "type_indicator": "benefit"
+    }
+
+
+	}
+}

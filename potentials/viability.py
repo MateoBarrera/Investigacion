@@ -17,7 +17,22 @@ font = {'family': 'serif',
         }
 
 ###Local Method###
+"""
+* Importante
+! deprecated
+TODO: por hacer
+@param Parámetro
+
+"""
 def get_data_month(df):
+    """_summary_
+
+    Args:
+        df (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """    
     data_month = df.set_index('Fecha')
     data_month = data_month.asfreq('M', method='ffill')
     data_month['Año'] = data_month.index.year

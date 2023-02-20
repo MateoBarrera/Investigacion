@@ -5,10 +5,10 @@ from prettytable import PrettyTable
 from tabulate import tabulate
 
 
-def generate_scenarios(list_resources=[1, 1, 1, 0]):
+def generate_scenarios(list_resources=[1, 1, 1, 1]):
   y_pv, y_w, y_pch, y_bio = list_resources
   
-  seed = [1.0, 0.75, 0.5, 0.25, 0]
+  seed = [1.0, 0.5, 0.25, 0]
   all_combinations = list(product(*[seed]*4))
 
   weight_scenarios = np.array(all_combinations)
@@ -51,7 +51,3 @@ def describe_scenarios(scenarios, list_resources, seed):
   print(Ex)
 
 scenarios = generate_scenarios()
-
-
-
-
